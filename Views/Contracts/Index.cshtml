@@ -1,0 +1,212 @@
+﻿@model IEnumerable<GLMS.Models.Contract>
+
+@{
+    ViewData["Title"] = "Contracts";
+}
+
+<h1>Contracts</h1>
+
+<p>
+    <a asp-action="Create"
+           class="btn btn-primary">
+        Create New Contract
+    </a>
+</p>
+
+<!-- SEARCH / FILTER -->
+
+<form method="get">
+
+    <div class="row mb-3">
+
+        <!-- STATUS -->
+
+        <div class="col-md-3">
+
+            <select name="searchStatus"
+                    class="form-control">
+
+                <option value="">
+                    All Statuses
+                </option>
+
+                <option value="Draft">
+                    Draft
+                </option>
+
+                <option value="Active">
+                    Active
+                </option>
+
+                <option value="Expired">
+                    Expired
+                </option>
+
+                <option value="On Hold">
+                    On Hold
+                </option>
+
+            </select>
+
+        </div>
+
+        <!-- START DATE -->
+
+        <div class="col-md-3">
+
+            <input type="date"
+                   name="startDate"
+                   class="form-control" />
+
+        </div>
+
+        <!-- END DATE -->
+
+        <div class="col-md-3">
+
+            <input type="date"
+                   name="endDate"
+                   class="form-control" />
+
+        </div>
+
+        <!-- SEARCH BUTTON -->
+
+        <div class="col-md-3">
+
+            <button type="submit"
+                    class="btn btn-success">
+
+                Search
+
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+<!-- CONTRACT TABLE -->
+
+<table class="table table-bordered table-striped">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>
+                Client
+            </th>
+
+            <th>
+                Start Date
+            </th>
+
+            <th>
+                End Date
+            </th>
+
+            <th>
+                Status
+            </th>
+
+            <th>
+                Service Level
+            </th>
+
+            <th>
+                Agreement
+            </th>
+
+            <th>
+                Actions
+            </th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in Model)
+        {
+            <tr>
+
+                <td>
+                    @item.Client?.Name
+                </td>
+
+                <td>
+                    @item.StartDate.ToShortDateString()
+                </td>
+
+                <td>
+                    @item.EndDate.ToShortDateString()
+                </td>
+
+                <td>
+                    @item.Status
+                </td>
+
+                <td>
+                    @item.ServiceLevel
+                </td>
+
+                <!-- PDF DOWNLOAD -->
+
+                <td>
+
+                    @if (!string.IsNullOrEmpty(item.PdfPath))
+                    {
+                        <a href="@item.PdfPath"
+                               target="_blank"
+                               class="btn btn-success btn-sm">
+
+                            Download PDF
+
+                        </a>
+                    }
+                    else
+                    {
+                        <span>No File</span>
+                    }
+
+                </td>
+
+                <!-- ACTION BUTTONS -->
+
+                <td>
+
+                    <a asp-action="Edit"
+                           asp-route-id="@item.Id"
+                           class="btn btn-warning btn-sm">
+
+                        Edit
+
+                    </a>
+
+                    <a asp-action="Details"
+                           asp-route-id="@item.Id"
+                           class="btn btn-info btn-sm">
+
+                        Details
+
+                    </a>
+
+                    <a asp-action="Delete"
+                           asp-route-id="@item.Id"
+                           class="btn btn-danger btn-sm">
+
+                        Delete
+
+                    </a>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
