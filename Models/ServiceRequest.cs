@@ -12,7 +12,9 @@ namespace GLMS.Models
 
         public string Description { get; set; }
 
-        public decimal CostUSD { get; set; }
+        public decimal ForeignAmount { get; set; }
+
+        public string CurrencyType { get; set; }
 
         public decimal? CostZAR { get; set; }
 

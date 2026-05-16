@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace GLMS.Services
 {
@@ -11,18 +12,21 @@ namespace GLMS.Services
             _httpClient = httpClient;
         }
 
-        public async Task<decimal> GetUsdToZarRate()
+        public async Task<decimal> GetExchangeRate(string currency)
         {
+            using var client = new HttpClient();
+
             string url =
-                "https://open.er-api.com/v6/latest/USD";
+                $"https://open.er-api.com/v6/latest/{currency}";
 
             var response =
-                await _httpClient.GetStringAsync(url);
+                await client.GetStringAsync(url);
 
-            var data = JObject.Parse(response);
+            dynamic data =
+                JsonConvert.DeserializeObject(response);
 
             decimal zarRate =
-                data["rates"]["ZAR"].Value<decimal>();
+                data.rates.ZAR;
 
             return zarRate;
         }

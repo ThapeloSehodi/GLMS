@@ -50,14 +50,31 @@
 
             <div class="form-group mb-3">
 
-                <label asp-for="CostUSD"
-                       class="control-label"></label>
+                <div class="form-group mb-3">
 
-                <input asp-for="CostUSD"
-                       class="form-control" />
+                    <label asp-for="ForeignAmount"></label>
 
-                <span asp-validation-for="CostUSD"
-                      class="text-danger"></span>
+                    <input asp-for="ForeignAmount"
+                           class="form-control" />
+
+                </div>
+
+                <div class="form-group mb-3">
+
+                    <label asp-for="CurrencyType"></label>
+
+                    <select asp-for="CurrencyType"
+                            class="form-control">
+
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="AED">AED</option>
+                        <option value="BWP">BWP</option>
+
+                    </select>
+
+                </div>
 
             </div>
 

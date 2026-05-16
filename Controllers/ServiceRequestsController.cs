@@ -105,11 +105,12 @@ namespace GLMS.Controllers
 
             // API CONVERSION
 
-            decimal exchangeRate =
-                await _currencyService.GetUsdToZarRate();
+            decimal rate =
+    await _currencyService
+    .GetExchangeRate(serviceRequest.CurrencyType);
 
             serviceRequest.CostZAR =
-                serviceRequest.CostUSD * exchangeRate;
+                serviceRequest.ForeignAmount * rate;
 
             if (!ModelState.IsValid)
             {
@@ -165,15 +166,44 @@ namespace GLMS.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
-            int id,
-            ServiceRequest serviceRequest)
+     int id,
+     ServiceRequest serviceRequest)
         {
             if (id != serviceRequest.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            // CHECK CONTRACT
+
+            var contract = await _context.Contracts
+                .FindAsync(serviceRequest.ContractId);
+
+            if (contract == null)
+            {
+                ModelState.AddModelError(
+                    "",
+                    "Contract not found.");
+            }
+            else if (contract.Status != "Active")
+            {
+                ModelState.AddModelError(
+                    "",
+                    "Only active contracts can be edited.");
+            }
+
+            // RECALCULATE ZAR
+
+            decimal rate =
+                await _currencyService
+                .GetExchangeRate(serviceRequest.CurrencyType);
+
+            serviceRequest.CostZAR =
+                serviceRequest.ForeignAmount * rate;
+
+            // SAVE
+
+            if (!ModelState.IsValid)
             {
                 try
                 {
@@ -183,8 +213,7 @@ namespace GLMS.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ServiceRequestExists(
-                        serviceRequest.Id))
+                    if (!ServiceRequestExists(serviceRequest.Id))
                     {
                         return NotFound();
                     }
@@ -196,7 +225,8 @@ namespace GLMS.Controllers
             }
 
             ViewData["ContractId"] = new SelectList(
-                _context.Contracts,
+                _context.Contracts
+                .Where(c => c.Status == "Active"),
                 "Id",
                 "Id",
                 serviceRequest.ContractId);

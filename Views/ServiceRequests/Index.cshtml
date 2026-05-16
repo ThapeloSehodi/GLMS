@@ -28,13 +28,15 @@
             </th>
 
             <th>
-                Cost USD
+                Foreign Amount
             </th>
 
             <th>
+                Currency Type
+            </th>
+            <th>
                 Cost ZAR
             </th>
-
             <th>
                 Status
             </th>
@@ -62,8 +64,11 @@
                 </td>
 
                 <td>
-                    $ @item.CostUSD
+                    @item.ForeignAmount
                 </td>
+                <th>
+                    @item.CurrencyType
+                </th>
 
                 <td>
                     R @item.CostZAR

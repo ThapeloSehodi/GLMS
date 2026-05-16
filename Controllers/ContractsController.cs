@@ -25,9 +25,9 @@ namespace GLMS.Controllers
         // ============================
 
         public async Task<IActionResult> Index(
-    string searchStatus,
-    DateTime? startDate,
-    DateTime? endDate)
+            string searchStatus,
+            DateTime? startDate,
+            DateTime? endDate)
         {
             var contracts = _context.Contracts
                 .Include(c => c.Client)
@@ -116,6 +116,8 @@ namespace GLMS.Controllers
                     var extension =
                         Path.GetExtension(contract.PdfFile.FileName);
 
+                    // ONLY PDF ALLOWED
+
                     if (extension.ToLower() != ".pdf")
                     {
                         ModelState.AddModelError(
@@ -137,12 +139,14 @@ namespace GLMS.Controllers
                             "uploads/contracts");
 
                     // CREATE FOLDER IF IT DOESN'T EXIST
+
                     if (!Directory.Exists(uploadsFolder))
                     {
                         Directory.CreateDirectory(uploadsFolder);
                     }
 
                     // UNIQUE FILE NAME
+
                     string uniqueFileName =
                         Guid.NewGuid().ToString() + "_" +
                         contract.PdfFile.FileName;
@@ -153,16 +157,20 @@ namespace GLMS.Controllers
                             uniqueFileName);
 
                     // SAVE FILE
+
                     using (var fileStream =
                         new FileStream(filePath, FileMode.Create))
                     {
                         await contract.PdfFile.CopyToAsync(fileStream);
                     }
 
-                    // SAVE PATH TO DATABASE
+                    // SAVE FILE PATH TO DATABASE
+
                     contract.PdfPath =
                         "/uploads/contracts/" + uniqueFileName;
                 }
+
+                // SAVE CONTRACT
 
                 _context.Add(contract);
 
@@ -222,7 +230,7 @@ namespace GLMS.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 try
                 {
