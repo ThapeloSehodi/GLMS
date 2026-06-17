@@ -1,53 +1,30 @@
-using GLMS.Data;
-using GLMS.Services;
+using GLMS.API.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services
+builder.Services.AddControllers();
 
-// DATABASE CONNECTION
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
-// MVC
-
-builder.Services.AddControllersWithViews();
-builder.Services.AddHttpClient("GLMSAPI", client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7095/");
-});
-builder.Services.AddHttpClient();
-
-builder.Services.AddScoped<CurrencyService>();
-
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-
-// ERROR HANDLING
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-
-// MIDDLEWARE
 app.UseHttpsRedirection();
-
-app.UseStaticFiles();
-
-app.UseRouting();
 
 app.UseAuthorization();
 
-
-// ROUTING
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
+app.MapControllers();
 
 app.Run();
