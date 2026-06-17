@@ -1,28 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using GLMS.Data;
+﻿using System.Net.Http.Json;
 using GLMS.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GLMS.Controllers
 {
     public class ClientsController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public ClientsController(AppDbContext context)
+        public ClientsController(IHttpClientFactory httpClientFactory)
         {
-            _context = context;
+            _httpClientFactory = httpClientFactory;
         }
 
         // GET: Clients
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Clients.ToListAsync());
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var clients = await httpClient.GetFromJsonAsync<List<Client>>(
+                "api/clients");
+
+            return View(clients ?? new List<Client>());
         }
 
         // GET: Clients/Details/5
@@ -33,8 +32,11 @@ namespace GLMS.Controllers
                 return NotFound();
             }
 
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var client = await httpClient.GetFromJsonAsync<Client>(
+                $"api/clients/{id}");
+
             if (client == null)
             {
                 return NotFound();
@@ -50,19 +52,29 @@ namespace GLMS.Controllers
         }
 
         // POST: Clients/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,ContactDetails,Region")] Client client)
+        public async Task<IActionResult> Create(Client client)
         {
             if (!ModelState.IsValid)
             {
-                _context.Add(client);
-                await _context.SaveChangesAsync();
+                return View(client);
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var response = await httpClient.PostAsJsonAsync(
+                "api/Clients",
+                client);
+
+            if (response.IsSuccessStatusCode)
+            {
                 return RedirectToAction(nameof(Index));
             }
-            return View(client);
+
+            // TEMPORARY: Show the API error in the browser
+            var error = await response.Content.ReadAsStringAsync();
+            return Content($"API Error: {response.StatusCode}\n\n{error}");
         }
 
         // GET: Clients/Edit/5
@@ -73,46 +85,43 @@ namespace GLMS.Controllers
                 return NotFound();
             }
 
-            var client = await _context.Clients.FindAsync(id);
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var client = await httpClient.GetFromJsonAsync<Client>(
+                $"api/clients/{id}");
+
             if (client == null)
             {
                 return NotFound();
             }
+
             return View(client);
         }
 
         // POST: Clients/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,ContactDetails,Region")] Client client)
+        public async Task<IActionResult> Edit(int id, Client client)
         {
             if (id != client.Id)
             {
                 return NotFound();
             }
 
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                try
+                var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+                var response = await httpClient.PutAsJsonAsync(
+                    $"api/clients/{id}",
+                    client);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _context.Update(client);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ClientExists(client.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
             }
+
             return View(client);
         }
 
@@ -124,8 +133,11 @@ namespace GLMS.Controllers
                 return NotFound();
             }
 
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var client = await httpClient.GetFromJsonAsync<Client>(
+                $"api/clients/{id}");
+
             if (client == null)
             {
                 return NotFound();
@@ -139,19 +151,11 @@ namespace GLMS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
-            if (client != null)
-            {
-                _context.Clients.Remove(client);
-            }
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
 
-            await _context.SaveChangesAsync();
+            await httpClient.DeleteAsync($"api/clients/{id}");
+
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool ClientExists(int id)
-        {
-            return _context.Clients.Any(e => e.Id == id);
         }
     }
 }
