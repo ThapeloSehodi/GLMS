@@ -1,212 +1,65 @@
-﻿@model IEnumerable<GLMS.Models.Contract>
+﻿@model IEnumerable<GLMS.API.Models.Contract>
 
 @{
-    ViewData["Title"] = "Contracts";
+    ViewData["Title"] = "Index";
 }
 
-<h1>Contracts</h1>
+<h1>Index</h1>
 
 <p>
-    <a asp-action="Create"
-           class="btn btn-primary">
-        Create New Contract
-    </a>
+    <a asp-action="Create">Create New</a>
 </p>
-
-<!-- SEARCH / FILTER -->
-
-<form method="get">
-
-    <div class="row mb-3">
-
-        <!-- STATUS -->
-
-        <div class="col-md-3">
-
-            <select name="searchStatus"
-                    class="form-control">
-
-                <option value="">
-                    All Statuses
-                </option>
-
-                <option value="Draft">
-                    Draft
-                </option>
-
-                <option value="Active">
-                    Active
-                </option>
-
-                <option value="Expired">
-                    Expired
-                </option>
-
-                <option value="On Hold">
-                    On Hold
-                </option>
-
-            </select>
-
-        </div>
-
-        <!-- START DATE -->
-
-        <div class="col-md-3">
-
-            <input type="date"
-                   name="startDate"
-                   class="form-control" />
-
-        </div>
-
-        <!-- END DATE -->
-
-        <div class="col-md-3">
-
-            <input type="date"
-                   name="endDate"
-                   class="form-control" />
-
-        </div>
-
-        <!-- SEARCH BUTTON -->
-
-        <div class="col-md-3">
-
-            <button type="submit"
-                    class="btn btn-success">
-
-                Search
-
-            </button>
-
-        </div>
-
-    </div>
-
-</form>
-
-<!-- CONTRACT TABLE -->
-
-<table class="table table-bordered table-striped">
-
-    <thead class="table-dark">
-
+<table class="table">
+    <thead>
         <tr>
-
             <th>
-                Client
+                @Html.DisplayNameFor(model => model.Client)
             </th>
-
             <th>
-                Start Date
+                @Html.DisplayNameFor(model => model.StartDate)
             </th>
-
             <th>
-                End Date
+                @Html.DisplayNameFor(model => model.EndDate)
             </th>
-
             <th>
-                Status
+                @Html.DisplayNameFor(model => model.Status)
             </th>
-
             <th>
-                Service Level
+                @Html.DisplayNameFor(model => model.ServiceLevel)
             </th>
-
             <th>
-                Agreement
+                @Html.DisplayNameFor(model => model.PdfPath)
             </th>
-
-            <th>
-                Actions
-            </th>
-
+            <th></th>
         </tr>
-
     </thead>
-
     <tbody>
-
-        @foreach (var item in Model)
-        {
-            <tr>
-
-                <td>
-                    @item.Client?.Name
-                </td>
-
-                <td>
-                    @item.StartDate.ToShortDateString()
-                </td>
-
-                <td>
-                    @item.EndDate.ToShortDateString()
-                </td>
-
-                <td>
-                    @item.Status
-                </td>
-
-                <td>
-                    @item.ServiceLevel
-                </td>
-
-                <!-- PDF DOWNLOAD -->
-
-                <td>
-
-                    @if (!string.IsNullOrEmpty(item.PdfPath))
-                    {
-                        <a href="@item.PdfPath"
-                               target="_blank"
-                               class="btn btn-success btn-sm">
-
-                            Download PDF
-
-                        </a>
-                    }
-                    else
-                    {
-                        <span>No File</span>
-                    }
-
-                </td>
-
-                <!-- ACTION BUTTONS -->
-
-                <td>
-
-                    <a asp-action="Edit"
-                           asp-route-id="@item.Id"
-                           class="btn btn-warning btn-sm">
-
-                        Edit
-
-                    </a>
-
-                    <a asp-action="Details"
-                           asp-route-id="@item.Id"
-                           class="btn btn-info btn-sm">
-
-                        Details
-
-                    </a>
-
-                    <a asp-action="Delete"
-                           asp-route-id="@item.Id"
-                           class="btn btn-danger btn-sm">
-
-                        Delete
-
-                    </a>
-
-                </td>
-
-            </tr>
-        }
-
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Client.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.StartDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EndDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ServiceLevel)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PdfPath)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
     </tbody>
-
 </table>

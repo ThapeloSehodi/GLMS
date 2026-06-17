@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Text.Json.Serialization;
 
-namespace GLMS.Models
+namespace GLMS.API.Models
 {
     public class ServiceRequest
     {
@@ -8,7 +8,8 @@ namespace GLMS.Models
 
         public int ContractId { get; set; }
 
-        public Contract Contract { get; set; }
+        [JsonIgnore]
+        public Contract? Contract { get; set; }
 
         public string Description { get; set; }
 

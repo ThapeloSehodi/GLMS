@@ -1,4 +1,4 @@
-﻿@model GLMS.Models.ServiceRequest
+﻿@model GLMS.API.Models.ServiceRequest
 
 @{
     ViewData["Title"] = "Create";
@@ -8,131 +8,50 @@
 
 <h4>ServiceRequest</h4>
 <hr />
-
 <div class="row">
-    <div class="col-md-6">
-
+    <div class="col-md-4">
         <form asp-action="Create">
-
-            <div asp-validation-summary="ModelOnly"
-                 class="text-danger"></div>
-
-            <!-- CONTRACT -->
-
-            <div class="form-group mb-3">
-
-                <label asp-for="ContractId"
-                       class="control-label"></label>
-
-                <select asp-for="ContractId"
-                        class="form-control"
-                        asp-items="ViewBag.ContractId">
-                </select>
-
-            </div>
-
-            <!-- DESCRIPTION -->
-
-            <div class="form-group mb-3">
-
-                <label asp-for="Description"
-                       class="control-label"></label>
-
-                <input asp-for="Description"
-                       class="form-control" />
-
-                <span asp-validation-for="Description"
-                      class="text-danger"></span>
-
-            </div>
-
-            <!-- COST USD -->
-
-            <div class="form-group mb-3">
-
-                <div class="form-group mb-3">
-
-                    <label asp-for="ForeignAmount"></label>
-
-                    <input asp-for="ForeignAmount"
-                           class="form-control" />
-
-                </div>
-
-                <div class="form-group mb-3">
-
-                    <label asp-for="CurrencyType"></label>
-
-                    <select asp-for="CurrencyType"
-                            class="form-control">
-
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AED">AED</option>
-                        <option value="BWP">BWP</option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-            <!-- COST ZAR -->
-
-            <div class="form-group mb-3">
-
-                <label asp-for="CostZAR"
-                       class="control-label"></label>
-
-                <input asp-for="CostZAR"
-                       class="form-control"
-                       readonly />
-
-            </div>
-
-            <!-- STATUS -->
-
-            <div class="form-group mb-3">
-
-                <label asp-for="Status"
-                       class="control-label"></label>
-
-                <input asp-for="Status"
-                       class="form-control" />
-
-                <span asp-validation-for="Status"
-                      class="text-danger"></span>
-
-            </div>
-
-            <!-- CREATE BUTTON -->
-
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
-
-                <input type="submit"
-                       value="Create"
-                       class="btn btn-primary" />
-
+                <label asp-for="ContractId" class="control-label"></label>
+                <select asp-for="ContractId" class ="form-control" asp-items="ViewBag.ContractId"></select>
             </div>
-
+            <div class="form-group">
+                <label asp-for="Description" class="control-label"></label>
+                <input asp-for="Description" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ForeignAmount" class="control-label"></label>
+                <input asp-for="ForeignAmount" class="form-control" />
+                <span asp-validation-for="ForeignAmount" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CurrencyType" class="control-label"></label>
+                <input asp-for="CurrencyType" class="form-control" />
+                <span asp-validation-for="CurrencyType" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CostZAR" class="control-label"></label>
+                <input asp-for="CostZAR" class="form-control" />
+                <span asp-validation-for="CostZAR" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Status" class="control-label"></label>
+                <input asp-for="Status" class="form-control" />
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
         </form>
-
     </div>
 </div>
 
-<div class="mt-3">
-
-    <a asp-action="Index">
-        Back to List
-    </a>
-
+<div>
+    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {
-
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }

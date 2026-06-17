@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.Contracts;
+using System.Text.Json.Serialization;
 
-namespace GLMS.Models
+namespace GLMS.API.Models
 {
     public class Client
     {
@@ -14,6 +14,7 @@ namespace GLMS.Models
 
         public string Region { get; set; }
 
-        public ICollection<Contract> Contracts { get; set; }
+        [JsonIgnore]
+        public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
     }
 }

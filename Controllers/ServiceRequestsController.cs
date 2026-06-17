@@ -1,246 +1,92 @@
-﻿using System.Net.Http.Json;
-using GLMS.Models;
-using GLMS.Services;
+﻿using GLMS.API.Data;
+using GLMS.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
-namespace GLMS.Controllers
+namespace GLMS.API.Controllers
 {
-    public class ServiceRequestsController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ServiceRequestsController : ControllerBase
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly CurrencyService _currencyService;
+        private readonly AppDbContext _context;
 
-        public ServiceRequestsController(
-            IHttpClientFactory httpClientFactory,
-            CurrencyService currencyService)
+        public ServiceRequestsController(AppDbContext context)
         {
-            _httpClientFactory = httpClientFactory;
-            _currencyService = currencyService;
+            _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        // GET: api/servicerequests
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ServiceRequest>>> GetServiceRequests()
         {
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
-            var response = await client.GetAsync("api/servicerequests");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                return Content($"API Error: {response.StatusCode}\n\n{error}");
-            }
-
-            var serviceRequests =
-                await response.Content.ReadFromJsonAsync<List<ServiceRequest>>();
-
-            return View(serviceRequests ?? new List<ServiceRequest>());
+            return await _context.ServiceRequests
+                .Include(s => s.Contract)
+                .ToListAsync();
         }
 
-        public async Task<IActionResult> Details(int? id)
+        // GET: api/servicerequests/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ServiceRequest>> GetServiceRequest(int id)
         {
-            if (id == null)
-                return NotFound();
-
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
-            var serviceRequest =
-                await client.GetFromJsonAsync<ServiceRequest>(
-                    $"api/servicerequests/{id}");
+            var serviceRequest = await _context.ServiceRequests
+                .Include(s => s.Contract)
+                .FirstOrDefaultAsync(s => s.Id == id);
 
             if (serviceRequest == null)
+            {
                 return NotFound();
+            }
 
-            return View(serviceRequest);
+            return serviceRequest;
         }
 
-        public async Task<IActionResult> Create()
-        {
-            await LoadActiveContractsDropdown();
-            return View();
-        }
-
+        // POST: api/servicerequests
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ServiceRequest serviceRequest)
+        public async Task<ActionResult<ServiceRequest>> CreateServiceRequest(ServiceRequest serviceRequest)
         {
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
+            _context.ServiceRequests.Add(serviceRequest);
+            await _context.SaveChangesAsync();
 
-            // Force form values into model
-            serviceRequest.ContractId = int.Parse(Request.Form["ContractId"]);
-            serviceRequest.Description = Request.Form["Description"].ToString();
-            serviceRequest.CurrencyType = Request.Form["CurrencyType"].ToString();
-            serviceRequest.Status = Request.Form["Status"].ToString();
-
-            if (decimal.TryParse(Request.Form["ForeignAmount"], out decimal foreignAmount))
-            {
-                serviceRequest.ForeignAmount = foreignAmount;
-            }
-
-            var contract = await client.GetFromJsonAsync<Contract>(
-                $"api/contracts/{serviceRequest.ContractId}");
-
-            if (contract == null)
-            {
-                ModelState.AddModelError("", "Selected contract does not exist.");
-            }
-            else if (contract.Status != "Active")
-            {
-                ModelState.AddModelError(
-                    "",
-                    "Service requests can only be created for active contracts.");
-            }
-
-            decimal rate =
-                await _currencyService.GetExchangeRate(
-                    serviceRequest.CurrencyType);
-
-            serviceRequest.CostZAR =
-                serviceRequest.ForeignAmount * rate;
-
-            if (ModelState.IsValid)
-            {
-                await LoadActiveContractsDropdown(serviceRequest.ContractId);
-                return View(serviceRequest);
-            }
-
-            var apiServiceRequest = new
-            {
-                contractId = serviceRequest.ContractId,
-                description = serviceRequest.Description,
-                foreignAmount = serviceRequest.ForeignAmount,
-                currencyType = serviceRequest.CurrencyType,
-                costZAR = serviceRequest.CostZAR,
-                status = serviceRequest.Status
-            };
-
-            var response = await client.PostAsJsonAsync(
-                "api/servicerequests",
-                apiServiceRequest);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction(nameof(Index));
-            }
-
-            var error = await response.Content.ReadAsStringAsync();
-
-            return Content(
-                $"API Error: {response.StatusCode}\n\n{error}");
+            return CreatedAtAction(
+                nameof(GetServiceRequest),
+                new { id = serviceRequest.Id },
+                serviceRequest);
         }
 
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-                return NotFound();
-
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
-            var serviceRequest =
-                await client.GetFromJsonAsync<ServiceRequest>(
-                    $"api/servicerequests/{id}");
-
-            if (serviceRequest == null)
-                return NotFound();
-
-            await LoadActiveContractsDropdown(serviceRequest.ContractId);
-            return View(serviceRequest);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(
+        // PUT: api/servicerequests/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateServiceRequest(
             int id,
             ServiceRequest serviceRequest)
         {
             if (id != serviceRequest.Id)
-                return NotFound();
-
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
-            var contract =
-                await client.GetFromJsonAsync<Contract>(
-                    $"api/contracts/{serviceRequest.ContractId}");
-
-            if (contract == null)
             {
-                ModelState.AddModelError("", "Contract not found.");
-            }
-            else if (contract.Status != "Active")
-            {
-                ModelState.AddModelError(
-                    "",
-                    "Only active contracts can be edited.");
+                return BadRequest();
             }
 
-            decimal rate =
-                await _currencyService.GetExchangeRate(
-                    serviceRequest.CurrencyType);
+            _context.Entry(serviceRequest).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
 
-            serviceRequest.CostZAR =
-                serviceRequest.ForeignAmount * rate;
-
-            if (!ModelState.IsValid)
-            {
-                await LoadActiveContractsDropdown(serviceRequest.ContractId);
-                return View(serviceRequest);
-            }
-
-            serviceRequest.Contract = null;
-
-            var response = await client.PutAsJsonAsync(
-                $"api/servicerequests/{id}",
-                serviceRequest);
-
-            if (response.IsSuccessStatusCode)
-                return RedirectToAction(nameof(Index));
-
-            var error = await response.Content.ReadAsStringAsync();
-            return Content($"API Error: {response.StatusCode}\n\n{error}");
+            return NoContent();
         }
 
-        public async Task<IActionResult> Delete(int? id)
+        // DELETE: api/servicerequests/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteServiceRequest(int id)
         {
-            if (id == null)
-                return NotFound();
-
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
             var serviceRequest =
-                await client.GetFromJsonAsync<ServiceRequest>(
-                    $"api/servicerequests/{id}");
+                await _context.ServiceRequests.FindAsync(id);
 
             if (serviceRequest == null)
+            {
                 return NotFound();
+            }
 
-            return View(serviceRequest);
-        }
+            _context.ServiceRequests.Remove(serviceRequest);
+            await _context.SaveChangesAsync();
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
-            await client.DeleteAsync($"api/servicerequests/{id}");
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        private async Task LoadActiveContractsDropdown(
-            int? selectedContractId = null)
-        {
-            var client = _httpClientFactory.CreateClient("GLMSAPI");
-
-            var contracts =
-                await client.GetFromJsonAsync<List<Contract>>(
-                    "api/contracts?status=Active");
-
-            ViewData["ContractId"] = new SelectList(
-                contracts ?? new List<Contract>(),
-                "Id",
-                "Id",
-                selectedContractId);
+            return NoContent();
         }
     }
 }

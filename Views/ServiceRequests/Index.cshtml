@@ -1,114 +1,65 @@
-﻿@model IEnumerable<GLMS.Models.ServiceRequest>
+﻿@model IEnumerable<GLMS.API.Models.ServiceRequest>
 
 @{
-    ViewData["Title"] = "Service Requests";
+    ViewData["Title"] = "Index";
 }
 
-<h1>Service Requests</h1>
+<h1>Index</h1>
 
 <p>
-    <a asp-action="Create"
-           class="btn btn-primary">
-        Create New Request
-    </a>
+    <a asp-action="Create">Create New</a>
 </p>
-
-<table class="table table-bordered table-striped">
-
-    <thead class="table-dark">
-
+<table class="table">
+    <thead>
         <tr>
-
             <th>
-                Contract ID
-            </th>
-
-            <th>
-                Description
-            </th>
-
-            <th>
-                Foreign Amount
-            </th>
-
-            <th>
-                Currency Type
+                @Html.DisplayNameFor(model => model.Contract)
             </th>
             <th>
-                Cost ZAR
+                @Html.DisplayNameFor(model => model.Description)
             </th>
             <th>
-                Status
+                @Html.DisplayNameFor(model => model.ForeignAmount)
             </th>
-
             <th>
-                Actions
+                @Html.DisplayNameFor(model => model.CurrencyType)
             </th>
-
+            <th>
+                @Html.DisplayNameFor(model => model.CostZAR)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Status)
+            </th>
+            <th></th>
         </tr>
-
     </thead>
-
     <tbody>
-
-        @foreach (var item in Model)
-        {
-            <tr>
-
-                <td>
-                    @item.ContractId
-                </td>
-
-                <td>
-                    @item.Description
-                </td>
-
-                <td>
-                    @item.ForeignAmount
-                </td>
-                <th>
-                    @item.CurrencyType
-                </th>
-
-                <td>
-                    R @item.CostZAR
-                </td>
-
-                <td>
-                    @item.Status
-                </td>
-
-                <td>
-
-                    <a asp-action="Edit"
-                           asp-route-id="@item.Id"
-                           class="btn btn-warning btn-sm">
-
-                        Edit
-
-                    </a>
-
-                    <a asp-action="Details"
-                           asp-route-id="@item.Id"
-                           class="btn btn-info btn-sm">
-
-                        Details
-
-                    </a>
-
-                    <a asp-action="Delete"
-                           asp-route-id="@item.Id"
-                           class="btn btn-danger btn-sm">
-
-                        Delete
-
-                    </a>
-
-                </td>
-
-            </tr>
-        }
-
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Contract.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ForeignAmount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CurrencyType)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CostZAR)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
     </tbody>
-
 </table>

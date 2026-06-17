@@ -1,8 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Http;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-namespace GLMS.Models
+namespace GLMS.API.Models
 {
     public class Contract
     {
@@ -10,15 +9,16 @@ namespace GLMS.Models
 
         public int ClientId { get; set; }
 
-        public Client Client { get; set; }
+        [JsonIgnore]
+    public Client? Client { get; set; }
 
-        public DateTime StartDate { get; set; }
+    public DateTime StartDate { get; set; }
 
         public DateTime EndDate { get; set; }
 
-        public string Status { get; set; }
+        public string? Status { get; set; }
 
-        public string ServiceLevel { get; set; }
+        public string? ServiceLevel { get; set; }
 
         public string? PdfPath { get; set; }
 
