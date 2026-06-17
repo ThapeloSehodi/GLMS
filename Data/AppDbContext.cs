@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using GLMS.API.Models;
+﻿using GLMS.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace GLMS.API.Data
+namespace GLMS.Data
 {
     public class AppDbContext : DbContext
     {

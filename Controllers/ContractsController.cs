@@ -1,144 +1,264 @@
-﻿using GLMS.API.Data;
-using GLMS.API.Models;
+﻿using System.Net.Http.Json;
+using GLMS.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
-
-namespace GLMS.API.Controllers
+namespace GLMS.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ContractsController : ControllerBase
+    public class ContractsController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public ContractsController(AppDbContext context)
+        public ContractsController(
+            IHttpClientFactory httpClientFactory,
+            IWebHostEnvironment webHostEnvironment)
         {
-            _context = context;
+            _httpClientFactory = httpClientFactory;
+            _webHostEnvironment = webHostEnvironment;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Contract>>> GetContracts(
-            string? status,
+        public async Task<IActionResult> Index(
+            string searchStatus,
             DateTime? startDate,
             DateTime? endDate)
         {
-            var query = _context.Contracts
-                .Include(c => c.Client)
-                .AsQueryable();
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
 
-            if (!string.IsNullOrEmpty(status))
-                query = query.Where(c => c.Status == status);
+            var response = await client.GetAsync("api/contracts");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return Content($"API Error: {response.StatusCode}\n\n{error}");
+            }
+
+            var contracts = await response.Content.ReadFromJsonAsync<List<Contract>>();
+
+            contracts ??= new List<Contract>();
+
+            if (!string.IsNullOrEmpty(searchStatus))
+                contracts = contracts.Where(c => c.Status == searchStatus).ToList();
 
             if (startDate.HasValue)
-                query = query.Where(c => c.StartDate >= startDate.Value);
+                contracts = contracts.Where(c => c.StartDate >= startDate.Value).ToList();
 
             if (endDate.HasValue)
-                query = query.Where(c => c.EndDate <= endDate.Value);
+                contracts = contracts.Where(c => c.EndDate <= endDate.Value).ToList();
 
-            return await query.ToListAsync();
+            return View(contracts);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Contract>> GetContract(int id)
+        public async Task<IActionResult> Details(int? id)
         {
-            var contract = await _context.Contracts
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            if (id == null) return NotFound();
 
-            if (contract == null)
-                return NotFound();
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
 
-            return contract;
+            var contract = await client.GetFromJsonAsync<Contract>(
+                $"api/contracts/{id}");
+
+            if (contract == null) return NotFound();
+
+            return View(contract);
+        }
+
+        public async Task<IActionResult> Create()
+        {
+            await LoadClientsDropdown();
+            return View();
+        }
+
+       [HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Create(Contract contract)
+{
+    // Force form values into model
+    contract.Status = Request.Form["Status"];
+    contract.ServiceLevel = Request.Form["ServiceLevel"];
+
+    if (contract.PdfFile != null)
+    {
+        var extension = Path.GetExtension(contract.PdfFile.FileName);
+
+        if (extension.ToLower() != ".pdf")
+        {
+            ModelState.AddModelError("", "Only PDF files are allowed.");
+            await LoadClientsDropdown(contract.ClientId);
+            return View(contract);
+        }
+
+        string uploadsFolder = Path.Combine(
+            _webHostEnvironment.WebRootPath,
+            "uploads/contracts");
+
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        string uniqueFileName =
+            Guid.NewGuid().ToString() + "_" +
+            contract.PdfFile.FileName;
+
+        string filePath =
+            Path.Combine(uploadsFolder, uniqueFileName);
+
+        using (var fileStream =
+            new FileStream(filePath, FileMode.Create))
+        {
+            await contract.PdfFile.CopyToAsync(fileStream);
+        }
+
+        contract.PdfPath =
+            "/uploads/contracts/" + uniqueFileName;
+    }
+
+    contract.PdfFile = null;
+
+    if (string.IsNullOrWhiteSpace(contract.Status))
+    {
+        return Content("MVC Error: Status is empty.");
+    }
+
+    if (string.IsNullOrWhiteSpace(contract.ServiceLevel))
+    {
+        return Content("MVC Error: ServiceLevel is empty.");
+    }
+
+    var client = _httpClientFactory.CreateClient("GLMSAPI");
+
+    var response = await client.PostAsJsonAsync(
+        "api/contracts",
+        contract);
+
+    if (response.IsSuccessStatusCode)
+    {
+        return RedirectToAction(nameof(Index));
+    }
+
+    var error = await response.Content.ReadAsStringAsync();
+
+    return Content(
+        $"API Error: {response.StatusCode}\n\n{error}");
+}
+
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var contract = await client.GetFromJsonAsync<Contract>(
+                $"api/contracts/{id}");
+
+            if (contract == null) return NotFound();
+
+            await LoadClientsDropdown(contract.ClientId);
+            return View(contract);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Contract>> CreateContract(JsonElement data)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Contract contract)
         {
-            int clientId = data.GetProperty("clientId").GetInt32();
-            DateTime startDate = data.GetProperty("startDate").GetDateTime();
-            DateTime endDate = data.GetProperty("endDate").GetDateTime();
-            string status = data.GetProperty("status").GetString();
-            string serviceLevel = data.GetProperty("serviceLevel").GetString();
-            string? pdfPath = null;
+            if (id != contract.Id) return NotFound();
 
-            if (data.TryGetProperty("pdfPath", out JsonElement pdfElement))
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var existingContract = await client.GetFromJsonAsync<Contract>(
+                $"api/contracts/{id}");
+
+            if (existingContract == null) return NotFound();
+
+            if (contract.PdfFile == null)
             {
-                pdfPath = pdfElement.GetString();
+                contract.PdfPath = existingContract.PdfPath;
             }
-
-            if (string.IsNullOrWhiteSpace(serviceLevel))
+            else
             {
-                return BadRequest("ServiceLevel is required.");
+                var extension = Path.GetExtension(contract.PdfFile.FileName);
+
+                if (extension.ToLower() != ".pdf")
+                {
+                    ModelState.AddModelError("", "Only PDF files are allowed.");
+                    await LoadClientsDropdown(contract.ClientId);
+                    return View(contract);
+                }
+
+                string uploadsFolder = Path.Combine(
+                    _webHostEnvironment.WebRootPath,
+                    "uploads/contracts");
+
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                string uniqueFileName =
+                    Guid.NewGuid().ToString() + "_" + contract.PdfFile.FileName;
+
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await contract.PdfFile.CopyToAsync(fileStream);
+                }
+
+                contract.PdfPath = "/uploads/contracts/" + uniqueFileName;
             }
-
-            if (string.IsNullOrWhiteSpace(status))
-            {
-                return BadRequest("Status is required.");
-            }
-
-            var newContract = new Contract
-            {
-                ClientId = clientId,
-                StartDate = startDate,
-                EndDate = endDate,
-                Status = status,
-                ServiceLevel = serviceLevel,
-                PdfPath = pdfPath
-            };
-
-            _context.Contracts.Add(newContract);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(
-                nameof(GetContract),
-                new { id = newContract.Id },
-                newContract);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateContract(int id, Contract contract)
-        {
-            if (id != contract.Id)
-                return BadRequest();
 
             contract.PdfFile = null;
 
-            _context.Entry(contract).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            var response = await client.PutAsJsonAsync(
+                $"api/contracts/{id}",
+                contract);
 
-            return NoContent();
+            if (response.IsSuccessStatusCode)
+                return RedirectToAction(nameof(Index));
+
+            var error = await response.Content.ReadAsStringAsync();
+            ModelState.AddModelError("", $"API error: {error}");
+
+            await LoadClientsDropdown(contract.ClientId);
+            return View(contract);
         }
 
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(
-            int id,
-            [FromBody] string status)
+        public async Task<IActionResult> Delete(int? id)
         {
-            var contract = await _context.Contracts.FindAsync(id);
+            if (id == null) return NotFound();
 
-            if (contract == null)
-                return NotFound();
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
 
-            contract.Status = status;
-            await _context.SaveChangesAsync();
+            var contract = await client.GetFromJsonAsync<Contract>(
+                $"api/contracts/{id}");
 
-            return NoContent();
+            if (contract == null) return NotFound();
+
+            return View(contract);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteContract(int id)
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var contract = await _context.Contracts.FindAsync(id);
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
 
-            if (contract == null)
-                return NotFound();
+            await client.DeleteAsync($"api/contracts/{id}");
 
-            _context.Contracts.Remove(contract);
-            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
 
-            return NoContent();
+        private async Task LoadClientsDropdown(int? selectedClientId = null)
+        {
+            var client = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var clients = await client.GetFromJsonAsync<List<Client>>(
+                "api/clients");
+
+            ViewData["ClientId"] = new SelectList(
+                clients ?? new List<Client>(),
+                "Id",
+                "Name",
+                selectedClientId);
         }
     }
 }

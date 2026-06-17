@@ -1,76 +1,161 @@
-﻿using GLMS.API.Data;
-using GLMS.API.Models;
+﻿using System.Net.Http.Json;
+using GLMS.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
-namespace GLMS.API.Controllers
+namespace GLMS.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ClientsController : ControllerBase
+    public class ClientsController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public ClientsController(AppDbContext context)
+        public ClientsController(IHttpClientFactory httpClientFactory)
         {
-            _context = context;
+            _httpClientFactory = httpClientFactory;
         }
 
-        // GET: api/clients
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Client>>> GetClients()
+        // GET: Clients
+        public async Task<IActionResult> Index()
         {
-            return await _context.Clients.ToListAsync();
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var clients = await httpClient.GetFromJsonAsync<List<Client>>(
+                "api/clients");
+
+            return View(clients ?? new List<Client>());
         }
 
-        // GET: api/clients/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Client>> GetClient(int id)
+        // GET: Clients/Details/5
+        public async Task<IActionResult> Details(int? id)
         {
-            var client = await _context.Clients.FindAsync(id);
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var client = await httpClient.GetFromJsonAsync<Client>(
+                $"api/clients/{id}");
 
             if (client == null)
+            {
                 return NotFound();
+            }
 
-            return client;
+            return View(client);
         }
 
-        // POST: api/clients
-        [HttpPost]
-        public async Task<ActionResult<Client>> CreateClient(Client client)
+        // GET: Clients/Create
+        public IActionResult Create()
         {
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
+            return View();
         }
 
-        // PUT: api/clients/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateClient(int id, Client client)
+        // POST: Clients/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Client client)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(client);
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var response = await httpClient.PostAsJsonAsync(
+                "api/Clients",
+                client);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            // TEMPORARY: Show the API error in the browser
+            var error = await response.Content.ReadAsStringAsync();
+            return Content($"API Error: {response.StatusCode}\n\n{error}");
+        }
+
+        // GET: Clients/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var client = await httpClient.GetFromJsonAsync<Client>(
+                $"api/clients/{id}");
+
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            return View(client);
+        }
+
+        // POST: Clients/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Client client)
         {
             if (id != client.Id)
-                return BadRequest();
+            {
+                return NotFound();
+            }
 
-            _context.Entry(client).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            if (ModelState.IsValid)
+            {
+                var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
 
-            return NoContent();
+                var response = await httpClient.PutAsJsonAsync(
+                    $"api/clients/{id}",
+                    client);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
+            return View(client);
         }
 
-        // DELETE: api/clients/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteClient(int id)
+        // GET: Clients/Delete/5
+        public async Task<IActionResult> Delete(int? id)
         {
-            var client = await _context.Clients.FindAsync(id);
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            var client = await httpClient.GetFromJsonAsync<Client>(
+                $"api/clients/{id}");
 
             if (client == null)
+            {
                 return NotFound();
+            }
 
-            _context.Clients.Remove(client);
-            await _context.SaveChangesAsync();
+            return View(client);
+        }
 
-            return NoContent();
+        // POST: Clients/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var httpClient = _httpClientFactory.CreateClient("GLMSAPI");
+
+            await httpClient.DeleteAsync($"api/clients/{id}");
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }
