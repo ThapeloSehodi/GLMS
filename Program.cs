@@ -14,6 +14,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // MVC
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient("GLMSAPI", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7095/");
+});
 builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<CurrencyService>();
